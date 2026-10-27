@@ -1,26 +1,58 @@
 import yt_dlp
 from pydub import AudioSegment
 import os
+import tempfile
 
 DOWNLOAD_DIR = "downloads"
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
+# YouTube often blocks cloud servers, and which player client gets through changes
+# over time, so try a few in order until one works.
+_CLIENT_ATTEMPTS = [None, ["tv", "android_vr"], ["web_safari", "mweb"], ["ios"]]
+
+
+def _cookie_file():
+    """Optional: put the contents of a Netscape cookies.txt in the YT_COOKIES secret."""
+    raw = os.getenv("YT_COOKIES")
+    if not raw:
+        return None
+    path = os.path.join(tempfile.gettempdir(), "yt_cookies.txt")
+    with open(path, "w") as f:
+        f.write(raw)
+    return path
+
+
 def download_youtube_audio(url: str) -> str:
     output_path = os.path.join(DOWNLOAD_DIR, "%(title)s.%(ext)s")
-    ydl_opts = {
-        'format': 'bestaudio/best',
-        'outtmpl': output_path,
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'wav',
-            'preferredquality': '192',
-        }],
-        "quiet": True,
-    }
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=True)
-        filename = ydl.prepare_filename(info).replace('.webm', '.wav').replace('.m4a', '.wav').replace('.mp3', '.wav')
-    return filename
+    cookies = _cookie_file()
+    last_error = None
+
+    for clients in _CLIENT_ATTEMPTS:
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'outtmpl': output_path,
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'wav',
+                'preferredquality': '192',
+            }],
+            "quiet": True,
+            "noplaylist": True,   # a link with &list=... must not download a whole playlist
+            "retries": 3,
+        }
+        if clients:
+            ydl_opts["extractor_args"] = {"youtube": {"player_client": clients}}
+        if cookies:
+            ydl_opts["cookiefile"] = cookies
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=True)
+                return os.path.splitext(ydl.prepare_filename(info))[0] + ".wav"
+        except Exception as e:  # try the next client
+            last_error = e
+            print(f"YouTube download failed with clients={clients}: {e}")
+
+    raise last_error
 
 
 

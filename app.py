@@ -563,7 +563,13 @@ if inputs["go"]:
             st.session_state.result = analyze(source, label)
             st.rerun()
         except Exception as e:  # noqa: BLE001
-            st.error(f"{type(e).__name__}: {e}")
+            if any(k in str(e) for k in ("403", "Sign in to confirm", "confirm you")):
+                st.error(
+                    "YouTube blocked the download from this server. Use **Upload file** in the "
+                    "sidebar instead, or run the app on your own computer where YouTube allows it."
+                )
+            else:
+                st.error(f"{type(e).__name__}: {e}")
             with st.expander("Troubleshooting"):
                 st.markdown(
                     "- Is **FFmpeg** installed and on your PATH? (`ffmpeg -version`)\n"
