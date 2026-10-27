@@ -4,6 +4,7 @@
 # ── Audio / Video acquisition ─────────────────────────────────────────────────
 yt-dlp>=2024.4.9                  # Download audio from YouTube URLs
 pydub>=0.25.1                     # Audio file manipulation / format conversion
+audioop-lts>=0.2.1; python_version >= "3.13"   # pydub needs audioop, removed in Python 3.13
 ffmpeg-python>=0.2.0              # FFmpeg bindings (FFmpeg binary must be installed separately)
 
 # ── Speech-to-Text (local Whisper) ────────────────────────────────────────────
@@ -30,7 +31,7 @@ huggingface-hub>=0.23.0           # Model downloading from HuggingFace Hub
 tiktoken>=0.7.0                   # Token counting for text splitting
 
 # ── Streamlit UI ──────────────────────────────────────────────────────────────
-streamlit>=1.35.0
+streamlit>=1.40.0
 streamlit-extras>=0.4.0           # Additional Streamlit widgets / utilities
 watchdog>=4.0.0                   # File-change watcher (improves Streamlit hot-reload)
 
