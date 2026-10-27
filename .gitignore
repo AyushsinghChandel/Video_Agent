@@ -1,8 +1,7 @@
-cat > .gitignore << 'EOF'
 .venv/
 .env
 downloads/
+vector_db/
 __pycache__/
 *.pyc
 .DS_Store
-EOF

@@ -29,14 +29,14 @@ def summarize(transcript: str) -> str:
     combined_summary = " ".join(chunk_summaries)
 
     combined_prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are an expert summarizer. Combine these partial summaries into a single professional summary in bullent points."),
+        ("system", "You are an expert summarizer. Combine these partial summaries into a single professional summary in bullet points."),
         ("user", "{text}")
     ])
 
     combined_chain = (
         RunnablePassthrough() | RunnableLambda(lambda x: {"text": x}) | combined_prompt | llm | StrOutputParser()
     )
-    final_summary = combined_chain.invoke({"text": combined_summary})
+    final_summary = combined_chain.invoke(combined_summary)
     return final_summary
 
 def generate_title(transcript: str) -> str:

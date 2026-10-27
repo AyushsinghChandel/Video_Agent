@@ -6,42 +6,57 @@ from langchain_core.documents import Document
 
 CHROMA_DIR = "vector_db"
 COLLECTION_NAME = "video_transcripts"
-EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"  
+EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
+
 
 def get_embeddings():
     return HuggingFaceEmbeddings(
         model_name=EMBEDDING_MODEL_NAME,
-        model_kwargs={"device": "cpu"}
-        )
+        model_kwargs={"device": "cpu"},
+    )
+
 
 def build_vector_store(transcripts: str) -> Chroma:
     print("Building vector store...")
+    embeddings = get_embeddings()
+
+    # Wipe the previous video so chat only searches the current one
+    try:
+        Chroma(
+            persist_directory=CHROMA_DIR,
+            embedding_function=embeddings,
+            collection_name=COLLECTION_NAME,
+        ).delete_collection()
+    except Exception:
+        pass
+
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=500,
-        chunk_overlap=50
+        chunk_overlap=50,
     )
     chunks = splitter.split_text(transcripts)
     docs = [
         Document(page_content=chunk, metadata={"source": f"chunk_{i}"})
         for i, chunk in enumerate(chunks)
     ]
-    embeddings = get_embeddings()
     vector_store = Chroma.from_documents(
         documents=docs,
         embedding=embeddings,
         persist_directory=CHROMA_DIR,
-        collection_name=COLLECTION_NAME
+        collection_name=COLLECTION_NAME,
     )
     return vector_store
+
 
 def load_vector_store() -> Chroma:
     embeddings = get_embeddings()
     vector_store = Chroma(
         persist_directory=CHROMA_DIR,
         embedding_function=embeddings,
-        collection_name=COLLECTION_NAME
+        collection_name=COLLECTION_NAME,
     )
     return vector_store
+
 
 def get_retriever(vector_store: Chroma, k: int = 4):
     return vector_store.as_retriever(search_type="similarity", search_kwargs={"k": k})
